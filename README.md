@@ -33,4 +33,8 @@ Soprano is part of a whole family of reference apps. The entire demo platform co
 
 For the UI frameworks used in Cavalier and Soprano, please refer to these repos:
 
- 
+Crescent UI:
+https://github.com/powerytg/CrescentUI
+
+Slim UI:
+https://github.com/powerytg/SlimUI
