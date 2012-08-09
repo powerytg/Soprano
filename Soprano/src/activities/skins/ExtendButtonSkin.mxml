@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark">
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="down" />
+		<s:State name="up" />
+	</s:states>
+	
+	<s:BitmapImage source="@Embed('../images/Extend.png')" horizontalCenter="0" verticalCenter="0"/>
+	<s:BitmapImage source="@Embed('../images/BlueHighlight.png')" horizontalCenter="0" verticalCenter="0" visible.up="false"/>
+</s:Skin>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark"
+			 	height="100" width="100%"	
+			 	autoDrawBackground="false"	>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			
+			/**
+			 * @private
+			 * 
+			 * Background fill bitmap
+			 */
+			[Embed(source='../images/EvenTweet.png', scaleGridLeft="10", scaleGridRight="30", scaleGridTop="10", scaleGridBottom="30")]
+			private var evenFace:Class;
+			
+			/**
+			 * @private
+			 * 
+			 * Background fill bitmap
+			 */
+			[Embed(source='../images/OddTweet.png', scaleGridLeft="10", scaleGridRight="30", scaleGridTop="10", scaleGridBottom="30")]
+			private var oddFace:Class;
+			
+			/**
+			 * @private
+			 */
+			[Embed(source='../images/PendingTweet.png', scaleGridLeft="10", scaleGridRight="30", scaleGridTop="10", scaleGridBottom="30")]
+			[Bindable]
+			private var pendingFace:Class;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var backgroundFace:Class;
+
+			/**
+			 * @private
+			 */
+			override public function set data(value:Object):void{
+				super.data = value;
+				
+				backgroundFace = itemIndex % 2 == 0 ? evenFace : oddFace;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="{data.pending ? pendingFace : backgroundFace}" left="0" right="0" top="0" bottom="0"/>
+	
+	<s:Label left="5" top="5" right="5" 
+			 text="{data.author}"
+			 maxDisplayedLines="1" 
+			 fontSize="18" fontWeight="bold" color="#2fdfd3"/>
+	
+	<s:Label left="5" top="30" right="5" bottom="5"
+			 text="{data.content}"
+			 maxDisplayedLines="3"
+			 fontSize="18" fontWeight="normal" color="#ffffff"/>
+	
+</s:ItemRenderer>

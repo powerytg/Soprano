@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim"
+			 xmlns:supportClasses="activities.supportClasses.*"
+			 creationComplete="init()" >
+			
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import controllers.UIController;
+			
+			import core.events.PlaylistEvent;
+			import core.models.Clip;
+			import core.models.ModelBase;
+			import core.models.Playlist;
+			import core.models.sync.Aggregator;
+			
+			import frameworks.slim.activity.ActivityDeck;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.ItemClickEvent;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			public var dataProvider:ArrayCollection = new ArrayCollection([null, null, null, null, null, null]);
+			
+			/**
+			 * @public
+			 */
+			public function hasSearchResult():Boolean{
+				if(!dataProvider)
+					return false;
+				
+				for each(var item:ModelBase in dataProvider){
+					if(item != null)
+						return true;
+				}
+				
+				return false;
+			}
+
+			/**
+			 * @private
+			 */
+			private function init():void{
+				resultList.addEventListener(ItemClickEvent.ITEM_CLICK, onItemClick, false, 0, true);
+			}
+			
+			/**
+			 * @private
+			 */
+			override public function destroy():void{
+				super.destroy();
+				
+				resultList.removeEventListener(ItemClickEvent.ITEM_CLICK, onItemClick);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onItemClick(evt:ItemClickEvent):void{
+				if(evt.item is Playlist){
+					var event:PlaylistEvent = new PlaylistEvent(PlaylistEvent.PLAYLIST_CHANGE);
+					event.selectedPlaylist = evt.item as Playlist;
+					
+					Aggregator.aggregator.selectedPlaylist = evt.item as Playlist;
+					Aggregator.aggregator.dispatchEvent(event);
+					
+					// Request the playlist detail view
+					var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+					deck.replaceAt(ActivityManager.activityManager.playlistDetailsActivity, 1);
+					
+				}
+				else{
+					UIController.uiController.startPlayback(evt.item as Clip);
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<e:List id="resultList" left="10" right="10" height="100%"
+			dataProvider="{dataProvider}" 
+			horizontalScrollPolicy="off"
+			itemRenderer="activities.supportClasses.SearchResultRenderer">
+		<e:layout>
+			<supportClasses:SearchResultLayout/>
+		</e:layout>
+	</e:List>			
+	
+</e:Activity>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim"
+			 addedToStage="init()" >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import controllers.TwitterController;
+			
+			import core.controllers.OSMFController;
+			import core.models.Tag;
+			import core.models.Tweet;
+			
+			import events.TwitterEvent;
+			
+			import mx.collections.ArrayCollection;
+			
+			import org.iotashan.utils.URLEncoding;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var tweets:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * @private
+			 */
+			private var pendingTweet:Tweet;
+			
+			/**
+			 * @private
+			 */
+			private function init():void{
+				TwitterController.twitterController.webView.stage = stage;
+				if(!TwitterController.twitterController.retrieveAccessTokenLocally()){
+					authGroup.visible = true;
+					logoutGroup.visible = false;
+				}
+				else{
+					authGroup.visible = false;
+					logoutGroup.visible = true;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onAuthButtonClick():void{
+				TwitterController.twitterController.getRequestToken();
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onLogOutButtonClick():void{
+				TwitterController.twitterController.clearAccessTokenLocally();
+				
+				authGroup.visible = true;
+				logoutGroup.visible = false;
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function onActivited():void{
+				super.onActivited();
+				
+				TwitterController.twitterController.addEventListener(TwitterEvent.SEARCH_RESULT, onSearchResult, false, 0, true);
+				TwitterController.twitterController.addEventListener(TwitterEvent.STATUS_UPDATE_SUCCESS, onUpdateSuccess, false, 0, true);
+				TwitterController.twitterController.addEventListener(TwitterEvent.STATUS_UPDATE_FAILED, onUpdateFailed, false, 0, true);
+
+				if(tweets.length == 0){
+					tweets.removeAll();
+					
+					var hashtags:Array = [];
+					for each(var tag:Tag in OSMFController.osmfController.currentClip.tags){
+						if(tag.name.charAt(0) == "#"){
+							hashtags.push(tag.name);
+						}
+					}
+					
+					var queryTerm:String = escape(hashtags.join(" "));
+					TwitterController.twitterController.search(queryTerm, 1);					
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function onDeactivited():void{
+				super.onDeactivited();
+				
+				TwitterController.twitterController.removeEventListener(TwitterEvent.SEARCH_RESULT, onSearchResult);
+				TwitterController.twitterController.removeEventListener(TwitterEvent.STATUS_UPDATE_SUCCESS, onUpdateSuccess);
+				TwitterController.twitterController.removeEventListener(TwitterEvent.STATUS_UPDATE_FAILED, onUpdateFailed);
+			}
+			
+			/**
+			 * @private
+			 */
+			override public function destroy():void{
+				tweets.removeAll();
+				tweets = null;
+				TwitterController.twitterController.removeEventListener(TwitterEvent.SEARCH_RESULT, onSearchResult);
+				TwitterController.twitterController.removeEventListener(TwitterEvent.STATUS_UPDATE_SUCCESS, onUpdateSuccess);
+				TwitterController.twitterController.removeEventListener(TwitterEvent.STATUS_UPDATE_FAILED, onUpdateFailed);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSearchResult(evt:TwitterEvent):void{
+				tweets.addAll(evt.tweets);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onStatusInputKeyDown(evt:KeyboardEvent):void{
+				if(evt.keyCode == Keyboard.ENTER){
+					if(statusInput.text == "" || pendingTweet)
+						return;
+
+					// Add a "pending" tweet to the front
+					pendingTweet = new Tweet();
+					pendingTweet.pending = true;
+					pendingTweet.content = "Updating status ...";
+					pendingTweet.author = "me";
+					tweets.addItemAt(pendingTweet, 0);
+					
+					// Attach hashtags
+					var hashtags:Array = [];
+					for each(var tag:Tag in OSMFController.osmfController.currentClip.tags){
+						if(tag.name.charAt(0) == "#"){
+							hashtags.push(tag.name);
+						}
+					}
+					
+					var status:String = statusInput.text + " " + hashtags.join(" ");
+					TwitterController.twitterController.updateStatus(status);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onUpdateFailed(evt:TwitterEvent):void{
+				// Destroy the pending tweet
+				if(pendingTweet && tweets.contains(pendingTweet))
+					tweets.removeItemAt(tweets.getItemIndex(pendingTweet));
+				
+				pendingTweet = null;
+			}
+
+			/**
+			 * @private
+			 */
+			private function onUpdateSuccess(evt:TwitterEvent):void{
+				// Upgrade the "pending" tweet to normal
+				if(pendingTweet){
+					pendingTweet.pending = false;
+					pendingTweet.id = evt.tweet.id;
+					pendingTweet.author = evt.tweet.author;
+					pendingTweet.content = evt.tweet.content;
+					
+					pendingTweet = null;
+				}
+			}
+
+		]]>
+	</fx:Script>
+	
+	<!-- Auth button, log out button -->
+	<s:VGroup id="authGroup" width="360" height="270" gap="30" horizontalAlign="center">
+		<s:BitmapImage source="@Embed('images/TwitterInstruction.png')"/>
+		<e:Button width="275" label="Authorize" click="onAuthButtonClick()"/>
+	</s:VGroup>
+
+	<s:VGroup id="logoutGroup" width="360" height="270" gap="30" horizontalAlign="center">
+		<s:BitmapImage source="@Embed('images/TwitterBanner.png')"/>
+		<e:Button width="275" label="Log Out" click="onLogOutButtonClick()"/>
+	</s:VGroup>
+
+	<!-- Tweets -->
+	<s:VGroup width="{width - 360}" right="10" top="10" bottom="20" gap="20">
+		 <e:TextInput id="statusInput" width="100%" height="30" visible="{logoutGroup.visible}"
+					  keyDown="onStatusInputKeyDown(event)" />
+		 <e:List id="tweetList" width="100%" height="100%"
+				 itemRenderer="activities.playbackActivities.supportClasses.TweetRenderer" 
+				 dataProvider="{tweets}"
+				 horizontalScrollPolicy="off" >
+			 <e:layout>
+				 <s:VerticalLayout gap="14"/>
+			 </e:layout>
+		 </e:List>
+	</s:VGroup>
+	
+</e:Activity>

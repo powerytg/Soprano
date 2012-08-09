@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim" 
+			 xmlns:supportClasses="activities.supportClasses.*">
+	
+	<fx:Declarations>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import controllers.UIController;
+			
+			import core.controllers.PlaylistController;
+			import core.events.ClipEvent;
+			import core.events.PlaylistEvent;
+			import core.models.Clip;
+			import core.models.Playlist;
+			import core.models.sync.Aggregator;
+			
+			import frameworks.slim.activity.ActivityDeck;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.ItemClickEvent;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var playlist:Playlist;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var numClips:Number;
+			
+			/**
+			 * @private
+			 */
+			override protected function onActivited():void{
+				if(Aggregator.aggregator.selectedPlaylist != null && playlist != Aggregator.aggregator.selectedPlaylist){
+					playlist = Aggregator.aggregator.selectedPlaylist;
+					
+					if(playlist.numClips != 0){
+						playlistEmptyView.visible = false;
+						playlistView.visible = true;
+						PlaylistController.playlistController.getPlaylist(playlist);
+						
+						numClips = playlist.numClips;
+					}
+					else{
+						playlistEmptyView.visible = true;
+						playlistView.visible = false;						
+					}
+				}
+				
+				Aggregator.aggregator.addEventListener(PlaylistEvent.PLAYLIST_CHANGE, onPlaylistChange, false, 0, true);
+				Aggregator.aggregator.addEventListener(PlaylistEvent.PLAYLIST_LOADED, onPlaylistLoaded, false, 0, true);
+				clipList.addEventListener(ItemClickEvent.ITEM_CLICK, onClipClick, false, 0, true);
+			}
+
+			/**
+			 * @private
+			 */
+			override protected function onDeactivited():void{
+				trace(this.toString() + ' deactivited');
+				Aggregator.aggregator.removeEventListener(PlaylistEvent.PLAYLIST_CHANGE, onPlaylistChange);
+				Aggregator.aggregator.removeEventListener(PlaylistEvent.PLAYLIST_LOADED, onPlaylistLoaded);
+			}
+
+			/**
+			 * @private
+			 */
+			private function onPlaylistChange(evt:PlaylistEvent):void{
+				if(Aggregator.aggregator.selectedPlaylist != null && playlist != Aggregator.aggregator.selectedPlaylist){
+					playlist = Aggregator.aggregator.selectedPlaylist;
+					
+					if(playlist.numClips != 0){
+						playlistEmptyView.visible = false;
+						playlistView.visible = true;
+						PlaylistController.playlistController.getPlaylist(playlist);
+						
+						numClips = playlist.numClips;
+					}
+					else{
+						playlistEmptyView.visible = true;
+						playlistView.visible = false;						
+					}
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPlaylistLoaded(evt:PlaylistEvent):void{
+				var dp:ArrayCollection = new ArrayCollection();
+				for each(var clip:Clip in playlist.clips){
+					dp.addItem(clip);
+				}
+				
+				clipList.dataProvider = dp;
+				imageRoller.playlist = playlist;
+				titleLabel.text = playlist.name;
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onClipClick(evt:ItemClickEvent):void{
+				var clip:Clip = evt.item as Clip;
+				if(clip != Aggregator.aggregator.selectedClip){
+					Aggregator.aggregator.selectedClip = clip;
+					
+					var event:ClipEvent = new ClipEvent(ClipEvent.CLIP_CHANGE);
+					event.selectedClip = clip;
+					Aggregator.aggregator.dispatchEvent(event);
+					
+					imageRoller.banner.source = clip.hdPreviewUrl; 
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPlayAllButtonClick():void{
+				if(!playlist)
+					return;
+				
+				UIController.uiController.startPlayback(playlist);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSearchMoreButtonClick():void{
+				var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+				deck.replaceAt(ActivityManager.activityManager.searchActivity, 1);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<!-- If the playlist is empty -->
+	<s:Group id="playlistEmptyView" top="115" bottom="0" width="100%"
+			  visible="false" >
+		<s:BitmapImage source="@Embed('images/PlaylistIsEmptyBanner.png')" top="90" left="50"/>
+		
+		<s:BitmapImage source="@Embed('images/Halo1.png')" top="-100" right="-186"/>
+		<s:BitmapImage source="@Embed('images/Halo2.png')" top="40" left="0"/>
+		
+		<s:Label text="To find more content" fontSize="18" fontFamily="Myriad Pro" fontWeight="normal" color="#cccccc"
+				 top="250" left="50" />
+		<e:Button label="Search Content" click="onSearchMoreButtonClick()"
+				  left="50" right="50" top="295" />	
+	</s:Group>
+			  
+	
+	<!-- Playlist view -->
+	<s:Group id="playlistView" width="100%" top="115" bottom="0">		
+		<!-- HD banner background -->
+		<supportClasses:ImageRoller id="imageRoller" width="100%" height="100%"/>
+
+		<!-- Shade overlays -->
+		<s:BitmapImage source="@Embed('images/BlackShade.png')" top="60" bottom="0" width="100%"
+					   fillMode="repeat" blendMode="multiply"/>
+		
+		<!-- Playlist title -->
+		<s:BitmapImage source="@Embed('images/PlaylistDetailActivityBackgroundArrow.png')" bottom="0" left="16"/>
+		<s:Label id="titleLabel" left="10" bottom="10" width="100%" maxDisplayedLines="1"
+				 fontFamily="Existence" fontSize="60" color="#1c868c">
+			<s:filters>
+				<s:GlowFilter blurX="5" blurY="5" color="#000000" alpha="0.85" strength="2"/>
+			</s:filters>
+		</s:Label> 
+
+		<s:BitmapImage source="@Embed('images/BlueShade.png')" left="0" right="87" top="60" bottom="0"
+					   fillMode="repeat"/>
+				
+		<e:List id="clipList" width="100%" top="60" bottom="0"
+			 	itemRenderer="activities.supportClasses.ClipRenderer"	/>
+		
+		<!-- Header -->
+		<s:BitmapImage left="0" right="0" top="0" height="61" 
+					   source="@Embed('images/PlaylistDetailActivityHeaderRight.png')"
+					   fillMode="scale" />
+		
+		<s:BitmapImage source="@Embed('images/PlaylistDetailActivityHeaderLeft.png')"/>
+		
+		<!-- Pattern -->
+		<!--
+		<s:BitmapImage source="@Embed('images/PlaylistDetailActivityHeaderPattern.png')"
+					   left="0" right="0" top="0" height="61" 
+					   fillMode="repeat" />
+		-->
+		<s:BitmapImage source="@Embed('images/ShadowUp.png')" top="51" left="0" right="0"/>
+		
+		<!-- Badge -->
+		<e:NumericLabel text="{numClips}" left="13" top="13"/>
+		<s:BitmapImage source="@Embed('images/ClipItems.png')" top="23" left="60"/>
+		
+		<!-- Play all button -->
+		
+		<e:Button id="playAllButton" label="Play Collection >>" right="8" top="6" click="onPlayAllButtonClick()"/>
+		
+		<!-- Left Shadow overlay -->
+		<s:BitmapImage source="@Embed('images/ShadowLeft.png')" height="100%"/>
+
+	</s:Group>
+	
+</e:Activity>

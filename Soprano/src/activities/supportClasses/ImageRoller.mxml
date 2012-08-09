@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:e="library://sporano/frameworks/slim"
+		 clipAndEnableScrolling="true" >
+	<fx:Declarations> 
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.models.Clip;
+			import core.models.Playlist;
+			
+			/**
+			 * @private
+			 */
+			private var urls:Array = [];
+			
+			/**
+			 * @private
+			 */
+			private var _playlist:Playlist;
+
+			/**
+			 * @private
+			 */
+			public function get playlist():Playlist
+			{
+				return _playlist;
+			}
+
+			/**
+			 * @private
+			 */
+			public function set playlist(value:Playlist):void
+			{
+				if(_playlist != value){
+					_playlist = value;
+					urls = [];
+					for each(var clip:Clip in _playlist.clips){
+						if(clip.hdPreviewUrl && clip.hdPreviewUrl != "")
+							urls.push(clip.hdPreviewUrl);
+					}
+					
+					if(urls.length != 0)
+						banner.source = urls[0];
+				}
+				
+			}
+
+			/**
+			 * @private
+			 */
+			private function onLoadComplete():void{
+				if(banner.width == 0 || banner.height == 0){
+					banner.invalidateSize();
+					banner.validateNow();
+				}
+
+				invalidateDisplayList();
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void{
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+				if(!banner || banner.width == 0 || banner.height == 0)
+					return;
+				
+				if(banner.source == null || banner.sourceWidth == 0 || banner.sourceHeight == 0)
+					return;
+				
+				var f:Number;
+				if(unscaledWidth < unscaledHeight){
+					// Portrait mode
+					banner.fillMode = "scale";
+					f = unscaledHeight / banner.sourceHeight;
+					banner.width = banner.sourceWidth * f;
+					banner.height = unscaledHeight;
+				}
+				else{
+					// Landscape mode
+					banner.fillMode = "clip";
+					banner.width = banner.sourceWidth;
+					banner.height = banner.sourceHeight;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+
+	<s:BitmapImage id="banner" smooth="true" 
+				   horizontalCenter="0" verticalCenter="0" 
+				   complete="onLoadComplete()" />			
+	
+</s:Group>

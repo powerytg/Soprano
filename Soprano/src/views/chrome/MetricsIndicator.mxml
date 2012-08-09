@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:supportClasses="views.supportClasses.*"
+		 addedToStage="onAddedToStage()" 
+		 removedFromStage="onRemovedFromStage()" 
+		 mouseChildren="false" mouseEnabled="false">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.controllers.MetricsController;
+			import core.models.videoMetrics.VideoMetrics;
+			
+			/**
+			 * @private
+			 */
+			private function onAddedToStage():void{
+				var metrics:VideoMetrics = MetricsController.metricsController.metrics;
+				if(metrics){
+					bitrateChart.metrics = metrics;
+					framerateChart.metrics = metrics;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onRemovedFromStage():void{
+				bitrateChart.metrics = null;
+				framerateChart.metrics = null;				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<supportClasses:BitrateChartWidget id="bitrateChart" width="286" height="164"/>
+	<supportClasses:FramerateChartWidget id="framerateChart" width="286" height="164" left="300"/>	
+		
+</s:Group>

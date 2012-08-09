@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim"
+			 creationComplete="init()" >
+	<fx:Script>
+		<![CDATA[
+			import activities.playbackActivities.supportClasses.BooleanPolicyRenderer;
+			import activities.playbackActivities.supportClasses.PolicyRendererBase;
+			
+			import polkit.Policy;
+			import polkit.PolicyKind;
+			import polkit.PolicyKit;
+			
+			/**
+			 * @private
+			 */
+			private function init():void{
+				for each(var policy:Policy in PolicyKit.policyKit.policies){
+					var renderer:PolicyRendererBase = createPolicyRenderer(policy);
+					renderer.percentWidth = 100;
+					policyGroup.addElement(renderer);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function createPolicyRenderer(policy:Policy):PolicyRendererBase{
+				switch(policy.kind){
+					case PolicyKind.BOOLEAN:
+						return createBooleanRenderer(policy);
+						break;
+				}
+				
+				return null;
+			}
+			
+			/**
+			 * @private
+			 */
+			private function createBooleanRenderer(policy:Policy):BooleanPolicyRenderer{
+				var widget:BooleanPolicyRenderer = new BooleanPolicyRenderer();
+				widget.policy = policy;
+				
+				return widget;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<s:VGroup id="policyGroup" left="10" right="10" top="40" bottom="10" gap="15"/>
+	
+</e:Activity>

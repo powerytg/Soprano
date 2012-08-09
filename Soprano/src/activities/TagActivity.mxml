@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.controllers.TagController;
+			import core.events.SearchEvent;
+			import core.events.TagEvent;
+			import core.models.Tag;
+			import core.models.query.QueryCondition;
+			import core.models.sync.Aggregator;
+			
+			import frameworks.slim.activity.ActivityDeck;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.ItemClickEvent;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var tags:ArrayCollection;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var statusString:String;
+			
+			/**
+			 * @private
+			 */
+			override protected function onActivited():void{
+				super.onActivited();
+				
+				if(!tags){
+					if(Aggregator.aggregator.tags){
+						copyTagsFromAggregator();
+					}
+					else{
+						Aggregator.aggregator.addEventListener(TagEvent.TAG_LIST_CHANGE, copyTagsFromAggregator);
+						TagController.tagController.getAllTags();
+						statusString = "loading tags...";
+					}
+				}
+				
+				tagList.addEventListener(ItemClickEvent.ITEM_CLICK, onTagSelected);
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function onDeactivited():void{
+				super.onDeactivited();
+				
+				Aggregator.aggregator.removeEventListener(TagEvent.TAG_LIST_CHANGE, copyTagsFromAggregator);
+				tagList.removeEventListener(ItemClickEvent.ITEM_CLICK, onTagSelected);
+			}
+			
+			/**
+			 * @public
+			 */
+			override public function destroy():void{
+				super.destroy();
+				
+				Aggregator.aggregator.removeEventListener(TagEvent.TAG_LIST_CHANGE, copyTagsFromAggregator);
+				tagList.removeEventListener(ItemClickEvent.ITEM_CLICK, onTagSelected);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function copyTagsFromAggregator(evt:TagEvent = null):void{
+				statusString = Aggregator.aggregator.tags.length.toString() + " tags";
+				
+				tags = new ArrayCollection();
+				
+				for each(var tag:Tag in Aggregator.aggregator.tags){
+					tags.addItem(tag);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onTagSelected(evt:ItemClickEvent):void{
+				var tag:Tag = evt.item as Tag;
+				
+				// Ignore tags without content
+				if(tag.numClips == 0)
+					return;
+				
+				// Switch to Search activity
+				var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+				deck.replaceAt(ActivityManager.activityManager.searchActivity, 1);
+
+				var condition:QueryCondition = new QueryCondition();
+				condition.clearPreviousRecords = true;
+				condition.tag = tag;
+				
+				var event:SearchEvent = new SearchEvent(SearchEvent.CONDITION_CHANGE);
+				event.condition = condition;
+				ActivityManager.activityManager.searchActivity.dispatchEvent(event);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<!-- Background -->
+	<s:BitmapImage source="@Embed('images/TagViewBackground.png')" 
+				   left="0" right="0" top="194" bottom="0"
+				   fillMode="repeat" />
+
+	<s:BitmapImage source="@Embed('images/ShadowDown.png')" width="100%" top="194"/>
+	<s:BitmapImage source="@Embed('images/TagBanner.png')" top="105"/>
+	
+	<!-- Tag list -->
+	<e:List id="tagList" top="210" bottom="40" left="15" right="15"
+		 	dataProvider="{tags}"	
+		 	itemRenderer="activities.supportClasses.TagRenderer"	/>
+
+	<!-- Search result -->
+	<s:BitmapImage source="@Embed('images/BottomBar.png')" left="0" right="160" bottom="0" height="30"
+				   fillMode="repeat"/>
+	
+	<s:BitmapImage source="@Embed('images/Black.png')" left="{width - 160}" right="0" bottom="0" height="30"
+				   fillMode="repeat"/>
+	
+	<s:Label fontSize="14" color="#bcedea" fontFamily="Myriad Pro" fontWeight="normal"
+			 bottom="6" right="180"
+			 text="Tags"/> 
+	
+	<s:Label fontSize="14" color="#bcedea" fontFamily="Myriad Pro" fontWeight="normal"
+			 bottom="6" left="{width - 140}"
+			 text="{statusString}"/> 	
+	
+</e:Activity>

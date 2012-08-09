@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.controllers.CommentController;
+			import core.controllers.OSMFController;
+			import core.events.CommentEvent;
+			import core.models.Comment;
+			import core.utils.TimeUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.ItemClickEvent;
+	
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var comments:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * @private
+			 */
+			private var commentController:CommentController = new CommentController();
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var selectedComment:Comment;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var selectedMonth:String;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var selectedDateFirstDigit:String;
+		
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var selectedDateSecondDigit:String;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var selectedContent:String;
+			
+			/**
+			 * @private
+			 * 
+			 * Yet to be posted comment
+			 */
+			private var pendingComment:Comment;
+			
+			/**
+			 * @private
+			 */
+			override protected function onActivited():void{
+				super.onActivited();
+
+				commentController.addEventListener(CommentEvent.COMMENT_RETRIEVED, onCommentRetrieved, false, 0, true);
+				commentController.addEventListener(CommentEvent.POST_SUCCESS, onPostSuccess, false, 0, true);
+				commentController.addEventListener(CommentEvent.POST_FAILED, onPostFailed, false, 0, true);
+				commentList.addEventListener(ItemClickEvent.ITEM_CLICK, onCommentClick, false, 0, true);
+
+				commentController.clip = OSMFController.osmfController.currentClip;
+				
+				if(comments.length == 0){
+					commentController.getComments(1);					
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function onDeactivited():void{
+				super.onDeactivited();
+				
+				commentController.removeEventListener(CommentEvent.COMMENT_RETRIEVED, onCommentRetrieved);
+				commentController.removeEventListener(CommentEvent.POST_SUCCESS, onPostSuccess);
+				commentController.removeEventListener(CommentEvent.POST_FAILED, onPostFailed);
+				commentList.removeEventListener(ItemClickEvent.ITEM_CLICK, onCommentClick);
+			}
+			
+			/**
+			 * @public
+			 */
+			override public function destroy():void{
+				super.destroy();
+				
+				comments.removeAll();
+				
+				commentController.removeEventListener(CommentEvent.COMMENT_RETRIEVED, onCommentRetrieved);
+				commentController.removeEventListener(CommentEvent.POST_SUCCESS, onPostSuccess);
+				commentController.removeEventListener(CommentEvent.POST_FAILED, onPostFailed);
+				commentController = null;
+				
+				commentList.removeEventListener(ItemClickEvent.ITEM_CLICK, onCommentClick);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onCommentRetrieved(evt:CommentEvent):void{
+				for each(var comment:Comment in evt.comments){
+					comments.addItem(comment);
+				}
+				
+				// Auto select item 0
+				if(evt.page == 1 && comments.length > 0)
+					selectComment(comments.getItemAt(0) as Comment);
+				
+				// Show/hide "More" button
+				moreButton.visible = (commentController.numPages > 1 && commentController.numPages != commentController.numPagesLoaded);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onCommentClick(evt:ItemClickEvent):void{
+				selectComment(evt.item as Comment);
+			}
+				
+			/**
+			 * @private
+			 */
+			private function selectComment(target:Comment):void{
+				selectedComment = target;
+				selectedContent = selectedComment.content;
+				
+				var dateArray:Array = selectedComment.date.split("-");
+				var month:Number = Number(dateArray[1]);
+				selectedMonth = TimeUtil.getShortMonthName(month);
+				
+				selectedDateFirstDigit = dateArray[2].charAt(0);
+				selectedDateSecondDigit = dateArray[2].charAt(1);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onLoadMoreButtonClick():void{
+				if(commentController.numPagesLoaded >= commentController.numPages)
+					return;
+				
+				commentController.getComments(commentController.numPagesLoaded + 1);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPostInputKeyDown(evt:KeyboardEvent):void{
+				if(evt.keyCode == Keyboard.ENTER){
+					if(commentInput.text == "" || pendingComment)
+						return;
+					
+					pendingComment = new Comment();
+					pendingComment.content = "Posting Comment...";
+					comments.addItemAt(pendingComment, 0);
+					commentController.postComment(OSMFController.osmfController.currentClip, commentInput.text);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPostFailed(evt:CommentEvent):void{
+				if(pendingComment){
+					if(comments.contains(pendingComment))
+						comments.removeItemAt(comments.getItemIndex(pendingComment));
+						
+					pendingComment = null;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPostSuccess(evt:CommentEvent):void{
+				if(pendingComment){
+					if(comments.contains(pendingComment))
+						comments.removeItemAt(comments.getItemIndex(pendingComment));
+					
+					pendingComment = null;
+				}
+				
+				comments.addItemAt(evt.comment, 0);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:BitmapImage source="@Embed('images/ReviewBanner.png')" left="25" top="15"/>
+	<e:TextInput id="commentInput" left="250" right="25" top="15" height="30"
+				 keyDown="onPostInputKeyDown(event)" />
+	
+	<s:Group width="368" height="215" top="90" visible="{comments.length > 0}">
+		<s:BitmapImage source="@Embed('images/ReviewCard.png')"/>
+		
+		<s:BitmapImage source="@Embed('images/QuoteLeft.png')" left="18" top="38"/>
+		<s:Label left="20" right="20" maxDisplayedLines="3"
+				 text="{selectedContent}"
+				 verticalCenter="0" textAlign="center"
+				 fontFamily="MyriadProLight" fontSize="24" color="#ffffff"/> 
+		<s:BitmapImage source="@Embed('images/QuoteRight.png')" right="18" bottom="42"/>
+		
+		<s:Label text="{selectedMonth}" left="271" top="30" fontFamily="Myriad Pro" fontSize="18" fontWeight="normal" color="#ffffff"/>
+		<s:Label text="{selectedDateFirstDigit}" left="316" top="30" fontFamily="Myriad Pro" fontSize="18" fontWeight="normal" color="#ffffff"/>
+		<s:Label text="{selectedDateSecondDigit}" left="329" top="30" fontFamily="Myriad Pro" fontSize="18" fontWeight="normal" color="#ffffff"/>
+	</s:Group>
+	
+	<e:List id="commentList" left="400" right="10" top="75" bottom="25"
+		 	dataProvider="{comments}"	
+		 	itemRenderer="activities.playbackActivities.supportClasses.CommentRenderer"	/>
+	
+	<!-- More button -->
+	<e:Button id="moreButton" label="More Reviews"
+			  left="400" right="10" bottom="5"
+			  visible="false"
+			  click="onLoadMoreButtonClick()" />
+	
+</e:Activity>

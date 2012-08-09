@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:mx="library://ns.adobe.com/flex/mx"
+			 xmlns:e="library://sporano/frameworks/slim" >
+	<fx:Declarations>
+		<s:SolidColorStroke id="stroke" color="{graphColor}"/>
+		<s:LinearGradient id="fill" rotation="90">
+			<s:GradientEntry color="{graphColor}" alpha="0.3"/>
+			<s:GradientEntry color="{graphColor}" alpha="0"/>
+		</s:LinearGradient>					
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import controllers.PlayerController;
+			
+			import core.controllers.AnalysisController;
+			import core.controllers.OSMFController;
+			import core.events.AnalysisEvent;
+			import core.models.HeatmapEntry;
+			
+			import mx.charts.events.ChartItemEvent;
+			import mx.collections.ArrayCollection;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var graphColor:Number = 0x07f0c7;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var heatmap:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * @private
+			 */
+			private var analysisController:AnalysisController = new AnalysisController();
+			
+			/**
+			 * @private
+			 */
+			override protected function onActivited():void{
+				super.onActivited();
+				
+				analysisController.clip = OSMFController.osmfController.currentClip;
+				analysisController.addEventListener(AnalysisEvent.HEATMAP_RETRIEVED, onHeatmappRetrieved, false, 0, true);
+				analysisController.addEventListener(AnalysisEvent.HEATMAP_FAILED, onHeatmapFailed, false, 0, true);
+
+				if(heatmap.length == 0)
+					analysisController.getHeatmap();
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function onDeactivited():void{
+				super.onDeactivited();
+				
+				analysisController.removeEventListener(AnalysisEvent.HEATMAP_RETRIEVED, onHeatmappRetrieved);
+				analysisController.removeEventListener(AnalysisEvent.HEATMAP_FAILED, onHeatmapFailed);
+			}
+			
+			/**
+			 * @public
+			 */
+			override public function destroy():void{
+				super.destroy();
+				
+				heatmap.removeAll();
+				analysisController.removeEventListener(AnalysisEvent.HEATMAP_RETRIEVED, onHeatmappRetrieved);
+				analysisController.removeEventListener(AnalysisEvent.HEATMAP_FAILED, onHeatmapFailed);
+				analysisController = null;
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onHeatmapFailed(evt:AnalysisEvent):void{
+				
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onHeatmappRetrieved(evt:AnalysisEvent):void{
+				for each(var entry:HeatmapEntry in evt.heatmap){
+					heatmap.addItem(entry);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onItemClick(evt:ChartItemEvent):void{
+				var entry:HeatmapEntry = evt.hitData.item as HeatmapEntry;
+				
+				PlayerController.playerController.closeMenuView();
+				OSMFController.osmfController.seekTo(entry.time);
+			}
+		]]>
+	</fx:Script>
+	
+	<mx:AreaChart id="chart" left="15" right="15" top="60" bottom="20"
+				  itemClick="onItemClick(event)" 
+				  selectionMode="single">
+		
+		<mx:verticalAxis>
+			<mx:LinearAxis id="vaxis"/>
+		</mx:verticalAxis>
+		
+		<mx:verticalAxisRenderers>
+			<mx:AxisRenderer axis="{vaxis}" visible="false" tickLength="0"/>
+		</mx:verticalAxisRenderers>
+		
+		<mx:horizontalAxis>
+			<mx:LinearAxis id="haxis"/>
+		</mx:horizontalAxis>
+		
+		<mx:horizontalAxisRenderers>
+			<mx:AxisRenderer axis="{haxis}" showLabels="false"/>
+		</mx:horizontalAxisRenderers>
+		
+		<mx:backgroundElements>
+			<mx:GridLines visible="false"/>
+		</mx:backgroundElements>
+		
+		<mx:series>
+			<mx:AreaSeries dataProvider="{heatmap}" yField="hits" xField="time"
+						   form="curve" areaFill="{fill}" areaStroke="{stroke}"/>
+			
+			<mx:PlotSeries dataProvider="{heatmap}" 
+						   yField="hits" xField="time"
+						   selectable="true" 
+						   itemRenderer="activities.playbackActivities.supportClasses.PlotRenderer"/>
+			
+		</mx:series>
+	</mx:AreaChart>
+	
+	<s:BitmapImage source="@Embed('images/HeatmapBanner.png')" right="5" top="5"/>
+	
+</e:Activity>

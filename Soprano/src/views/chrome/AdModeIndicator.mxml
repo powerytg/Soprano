@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:e="library://sporano/frameworks/slim"
+		 addedToStage="onAddedToStage()" >
+	<fx:Declarations>
+		<s:Parallel id="showAnimation">
+			<s:Move target="{logo}" yFrom="{-height}" yTo="{height / 2 - 53}"/>
+			<s:Move target="{buttonGroup}" yFrom="{height}" yTo="0"/>
+		</s:Parallel>
+
+		<s:Parallel id="closeAnimation">
+			<s:Move target="{logo}" yTo="{-height}"/>
+			<s:Move target="{buttonGroup}" yTo="{height}"/>
+		</s:Parallel>
+
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			public var previewUrl:String;
+			
+			/**
+			 * @private
+			 */
+			private function onAddedToStage():void{
+				showAnimation.play();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<!-- Blurred background -->
+	<s:BitmapImage id="backgroundImage"
+				   source="{previewUrl}" 
+				   scaleMode="stretch" fillMode="scale"
+				   left="0" right="0" top="0" bottom="0">
+		<s:filters>
+			<s:BlurFilter blurX="50" blurY="50"/>
+		</s:filters>
+	</s:BitmapImage>
+	
+	<s:BitmapImage source="@Embed('../images/Black.png')"
+				   fillMode="repeat" alpha="0.7"
+				   left="0" right="0" top="0" bottom="0" />
+	
+	<s:BitmapImage id="logo" source="@Embed('../images/AdModeBanner.png')" left="45"/>
+
+	<s:VGroup id="buttonGroup" 
+			  right="0" width="50%" height="100%" 
+			  gap="10" 
+			  horizontalAlign="right" verticalAlign="middle"
+			  paddingRight="40">
+		
+		<e:Button id="longModeButton" width="433" height="122" skinClass="views.supportClasses.AdModeLongButtonSkin"/>
+		<e:Button id="shortModeButton" width="433" height="122" skinClass="views.supportClasses.AdModeShortButtonSkin"/>
+		<e:Button id="returnButton" width="433" height="122" skinClass="views.supportClasses.AdModeReturnButtonSkin"/>
+		
+	</s:VGroup> 
+	
+</s:Group>

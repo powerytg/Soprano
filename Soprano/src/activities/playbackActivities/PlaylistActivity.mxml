@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim"
+			 creationComplete="init()" >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import controllers.PlayerController;
+			
+			import core.controllers.OSMFController;
+			import core.events.PlaylistEvent;
+			import core.models.Clip;
+			import core.models.Playlist;
+			
+			import mx.collections.ArrayCollection;
+			
+			/**
+			 * @private
+			 */
+			public var playlist:Playlist;
+
+			/**
+			 * @public
+			 */
+			public var currentClip:Clip;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var collection:ArrayCollection;
+			
+			/**
+			 * @private
+			 */
+			private function init():void{
+				collection = new ArrayCollection();
+				for each(var clip:Clip in playlist.clips){
+					collection.addItem(clip);
+				}
+				
+				collectionList.selectedItem = currentClip;
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSelectionChange():void{
+				PlayerController.playerController.closeMenuView();
+				OSMFController.osmfController.playClip(collectionList.selectedItem as Clip);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Label text="Content in this playlist" color="#bcd4eb" fontSize="24" left="8" top="10" fontWeight="normal"/>
+	<s:BitmapImage source="@Embed('images/PlaylistSelectorSplitter.png')" top="40" width="100%"/>
+	
+	<e:List id="collectionList" top="70" left="0" right="20" bottom="20"
+		 	dataProvider="{collection}"
+		  	itemRenderer="activities.supportClasses.SearchResultRenderer"
+		 	horizontalScrollPolicy="off" verticalScrollPolicy="off"	
+		 	change="onSelectionChange()"	>
+		<e:layout>
+			<s:TileLayout requestedColumnCount="5" 
+						  paddingLeft="10" paddingRight="10" paddingTop="10" paddingBottom="10"/>
+		</e:layout>
+	</e:List>
+	
+</e:Activity>

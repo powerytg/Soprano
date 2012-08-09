@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:supportClasses="activities.playbackActivities.supportClasses.*" 
+		 xmlns:activity="frameworks.slim.activity.*"
+		 xmlns:e="library://sporano/frameworks/slim"
+		 creationComplete="init()"  >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import activities.playbackActivities.events.MenuNavigatorEvent;
+			
+			import controllers.PlayerController;
+			
+			import core.controllers.OSMFController;
+			
+			import frameworks.slim.activity.Activity;
+			import frameworks.slim.activity.events.ActivityContainerEvent;
+			import frameworks.slim.activity.events.ActivityDeckEvent;
+
+			/**
+			 * @private
+			 */
+			private var playlistActivity:PlaylistActivity;
+
+			/**
+			 * @private
+			 */
+			private var sharingActivity:SharingActivity;
+			
+			/**
+			 * @private
+			 */
+			private var twitterActivity:TwitterActivity;
+			
+			/**
+			 * @private
+			 */
+			private var commentActivity:CommentActivity;
+
+			/**
+			 * @private
+			 */
+			private var heatmapActivity:HeatmapActivity;
+			
+			/**
+			 * @private
+			 */
+			private var settingsActivity:SettingsActivity;
+			
+			/**
+			 * @private
+			 */
+			private var childActivities:Array;
+			
+			/**
+			 * @private
+			 */
+			private var numActivityInitialized:Number = 0;
+			
+			/**
+			 * @private
+			 */
+			private function init():void{
+				visible = false;
+				PlayerController.playerController.showLoadingScreen();
+				
+				playlistActivity = new PlaylistActivity();
+				playlistActivity.playlist = OSMFController.osmfController.playlist;
+				playlistActivity.currentClip = OSMFController.osmfController.currentClip;
+				deck.addActivity(playlistActivity);
+				
+				sharingActivity = new SharingActivity();
+				deck.addActivity(sharingActivity);
+				
+				twitterActivity = new TwitterActivity();
+				deck.addActivity(twitterActivity);
+				
+				heatmapActivity = new HeatmapActivity();
+				deck.addActivity(heatmapActivity);
+				
+				commentActivity = new CommentActivity();
+				deck.addActivity(commentActivity);
+				
+				settingsActivity = new SettingsActivity();
+				deck.addActivity(settingsActivity);
+				
+				childActivities = [playlistActivity, sharingActivity, twitterActivity, heatmapActivity, commentActivity, settingsActivity];
+				for each(var activity:Activity in childActivities){
+					activity.addEventListener(ActivityContainerEvent.PROXY_UPDATED, onActivityInitialized, false, 0, true);						
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onActivityInitialized(evt:ActivityContainerEvent):void{
+				var activity:Activity = evt.currentTarget as Activity;
+				activity.removeEventListener(ActivityContainerEvent.PROXY_UPDATED, onActivityInitialized);
+				
+				numActivityInitialized += 1;
+				if(numActivityInitialized == childActivities.length){
+					PlayerController.playerController.removeLoadingScreen();
+					visible = true;
+					deck.lookAt(playlistActivity);
+				}
+					
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onCloseButtonClick():void{
+				PlayerController.playerController.closeMenuView();
+			}
+
+			/**
+			 * @private
+			 */
+			private function onMenuNavigatorScrollingBegin(evt:MenuNavigatorEvent):void{
+				if(!deck.isInTransitionMode)
+					deck.enterTransitionMode();				
+			}
+
+			/**
+			 * @private
+			 */
+			private function onMenuNavigatorScrolling(evt:MenuNavigatorEvent):void{
+				deck.proxyGroup.horizontalScrollPosition = evt.horizontalScrollPercentage * deck.proxyGroup.contentWidth;
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onMenuNavigatorViewChange(evt:MenuNavigatorEvent):void{
+				deck.lookAt(deck.activities.getItemAt(evt.selectedViewIndex) as Activity);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSlideDeckScrolling(evt:ActivityDeckEvent):void{
+//				navigator.scrollToPercentage(evt.horizontalScrollPercentage);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSlideDeckScrollingEnd(evt:ActivityDeckEvent):void{
+				var index:Number = deck.activities.getItemIndex(deck.currentActivity);
+				navigator.snapToPositionIndex(index);
+			}
+		]]>
+	</fx:Script>
+	
+	<!-- Darkened background -->
+	<s:BitmapImage source="@Embed('images/Black.png')" width="100%" height="100%" fillMode="repeat" alpha="0.5"/>
+	
+	<!-- Back button -->
+	<e:CircularButton id="backButton" icon="@Embed('images/Back.png')" left="0" top="0" click="onCloseButtonClick()"/>
+	
+	<!-- View switcher -->
+	<supportClasses:MenuNavigator id="navigator" top="5" right="5"
+								  horizontalScrollPositionChange="onMenuNavigatorScrolling(event)"
+								  horizontalScrollBegin="onMenuNavigatorScrollingBegin(event)" 
+								  viewChange="onMenuNavigatorViewChange(event)" />
+	
+	<!-- Activities -->
+	<activity:SlideDeck id="deck" left="25" right="0" top="100" bottom="0"
+					 	transitionUpdate="onSlideDeckScrolling(event)"	
+					  	transitionEnd="onSlideDeckScrollingEnd(event)"	/>
+</s:Group>

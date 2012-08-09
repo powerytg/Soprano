@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim"
+			 creationComplete="init()" xmlns:supportClasses="activities.supportClasses.*" >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.controllers.PlaylistController;
+			import core.events.PlaylistEvent;
+			import core.events.SearchEvent;
+			import core.models.Playlist;
+			import core.models.query.QueryCondition;
+			import core.models.sync.Aggregator;
+			
+			import frameworks.slim.activity.ActivityDeck;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.ItemClickEvent;
+			import mx.events.PropertyChangeEvent;
+			
+			/**
+			 * @public
+			 */
+			public var itemsPerPage:Number = 9;
+			
+			/**
+			 * @public
+			 */
+			public var condition:QueryCondition;
+			
+			/**
+			 * @public
+			 */
+			[Bindable]
+			public var dataProvider:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * @public
+			 */
+			[Bindable]
+			public var numPages:Number = 1;
+			
+			/**
+			 * @public
+			 */
+			[Bindable]
+			public var numLoadedPages:Number = 0;
+
+			
+			/**
+			 * @private
+			 */
+			private var playlistWatcher:EventDispatcher;
+			
+			/**
+			 * @private
+			 */
+			private var searching:Boolean = false;
+			
+			/**
+			 * @private
+			 */
+			private function init():void{
+				// Auto load more content whenever reaching the bottom of collectionList
+				collectionList.scroller.viewport.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, onScrollToBottom, false, 0, true);
+				collectionList.addEventListener(ItemClickEvent.ITEM_CLICK, onPlaylistClick, false, 0, true);
+
+				// Get the latest playlist collection from server
+				searchPage(1);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function searchPage(page:Number):void{
+				if(searching || numLoadedPages == numPages)
+					return;
+				
+				searching = true;
+				numLoadedPages += 1;
+				
+				playlistWatcher = PlaylistController.playlistController.searchPlaylist(page, itemsPerPage, "all");
+				playlistWatcher.addEventListener(SearchEvent.PLAYLIST_SEARCH_RESULT, onPlaylistSearchResult, false, 0, true);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPlaylistSearchResult(evt:SearchEvent):void{
+				searching = false;
+				
+				if(playlistWatcher){
+					playlistWatcher.removeEventListener(SearchEvent.PLAYLIST_SEARCH_RESULT, onPlaylistSearchResult);
+					playlistWatcher = null;
+				}
+				
+				numPages = evt.payload.numPages;
+				dataProvider.addAll(evt.payload.result as ArrayCollection);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onScrollToBottom(evt:PropertyChangeEvent):void{
+				if (evt.source == evt.target && evt.property == "verticalScrollPosition"){
+					var offset:Number = collectionList.scroller.viewport.contentHeight - collectionList.scroller.height;
+					if(offset < 0)
+						return;
+					
+					if(collectionList.scroller.viewport.verticalScrollPosition >= offset)
+						if(numLoadedPages < numPages){
+							searchPage(numLoadedPages + 1);
+						}
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPlaylistClick(evt:ItemClickEvent):void{
+				evt.stopPropagation();
+				
+				var event:PlaylistEvent = new PlaylistEvent(PlaylistEvent.PLAYLIST_CHANGE);
+				event.selectedPlaylist = evt.item as Playlist;
+				
+				Aggregator.aggregator.selectedPlaylist = evt.item as Playlist;
+				Aggregator.aggregator.dispatchEvent(event);
+				
+				// Request the playlist detail view
+				var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+				deck.replaceAt(ActivityManager.activityManager.playlistDetailsActivity, 1);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSearchButtonClick():void{
+				var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+				deck.replaceAt(ActivityManager.activityManager.searchActivity, 1);
+
+			}
+
+			/**
+			 * @private
+			 */
+			private function onExtendButtonClick():void{
+				var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+				deck.replaceAt(ActivityManager.activityManager.tagActivity, 1);
+			}
+
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="@Embed('images/FeaturedBanner.png')" width="100%" fillMode="clip" horizontalAlign="left"
+				   top="100" />
+	
+	<s:BitmapImage source="@Embed('images/BottomBar.png')" left="0" right="160" bottom="0" height="30"
+				   fillMode="repeat"/> 
+	
+	<!-- Playlist collection -->
+	<e:List id="collectionList" 
+				  left="0" right="0" top="196" bottom="0"
+				  itemRenderer="activities.supportClasses.PlaylistRenderer"
+				  dataProvider="{dataProvider}" 
+				  skinClass="activities.skins.CollectionListSkin" />
+	
+	<!-- Shadow overlay -->
+	<s:BitmapImage source="@Embed('images/ShadowDown.png')" width="100%" top="196"/>
+	
+	<!-- Search button -->
+	<supportClasses:SearchButton id="searchButton" bottom="0" horizontalCenter="0" click="onSearchButtonClick()"/>
+	
+	<!-- Extend button -->
+	<supportClasses:ExtendButton id="extendButton" right="-10" bottom="-15" click="onExtendButtonClick()"/>
+	
+</e:Activity>

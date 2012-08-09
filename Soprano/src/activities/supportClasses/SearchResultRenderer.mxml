@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:e="library://sporano/frameworks/slim"
+				autoDrawBackground="false"
+			 	width="167" height="97"	
+			 	click="onClick()" >
+
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<s:Parallel id="removePlaceHolderAnimation" effectEnd="onRemovePlaceHolderAnimationEnd()">
+			<s:Fade target="{placeHolder}" alphaTo="0"/>
+			<s:Fade target="{preview}" alphaTo="1"/>
+		</s:Parallel>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.models.Playlist;
+			
+			import mx.events.ItemClickEvent;
+			
+			/**
+			 * @private
+			 */
+			[Embed('..//images/NoCoverArt.jpg')]
+			[Bindable]
+			private var defaultCoverArt:Class;
+			
+			/**
+			 * @private
+			 */
+			override public function set data(value:Object):void{
+				super.data = value;
+				
+				if(data){
+					preview.source = data.previewUrl == '' ? defaultCoverArt : data.previewUrl;
+					removePlaceHolderAnimation.play();
+
+					if(data is Playlist){
+						badge.text = data.numClips.toString();
+						badge.visible = true;
+					}
+					else
+						badge.visible = false;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onRemovePlaceHolderAnimationEnd():void{
+				if(containsElement(placeHolder)){
+					placeHolder.visible = false;
+					removeElement(placeHolder);
+				}
+			}
+				
+			/**
+			 * @private
+			 */
+			private function onClick():void{
+				var e:ItemClickEvent = new ItemClickEvent(ItemClickEvent.ITEM_CLICK, true);
+				e.item = data;
+				e.index = itemIndex;
+				dispatchEvent(e);
+			}
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="selected"/>
+	</s:states>
+
+	<s:BitmapImage id="placeHolder" source="@Embed(source='../images/SearchResultPlaceHolder.png', scaleGridLeft=10, scaleGridTop=10, scaleGridRight=150, scaleGridBottom=70)"
+				   left="0" right="0" top="0" bottom="0"
+				   scaleMode="stretch" fillMode="scale"/> 
+
+	<s:BitmapImage id="preview"
+				   alpha="0" 
+				   left="0" right="0" top="0" bottom="0"
+				   scaleMode="stretch" fillMode="scale"/> 
+	
+	<s:BitmapImage source="@Embed(source='../images/TileSelected.png', scaleGridLeft=7, scaleGridTop=8, scaleGridRight=171, scaleGridBottom=92)"
+				   left="-6" right="-7" top="-8" bottom="-7"
+				   scaleMode="stretch" fillMode="scale"
+				   visible="false" visible.selected="true" /> 
+	
+	<!-- Badge -->
+	<e:NumericLabel id="badge" left="6" top="6" visible="false"/>
+</s:ItemRenderer>

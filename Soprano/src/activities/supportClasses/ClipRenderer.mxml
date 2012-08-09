@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:supportClasses="activities.supportClasses.*"
+			 	height="85"
+			 	autoDrawBackground="false" 	
+			 	click="onClick()"	>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="selected"/>
+	</s:states>
+
+	
+	<fx:Script>
+		<![CDATA[
+			import controllers.UIController;
+			
+			import core.models.Clip;
+			
+			import mx.events.ItemClickEvent;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var title:String;
+
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var isOddLine:Boolean = false;
+			
+			/**
+			 * @private
+			 */
+			override public function set data(value:Object):void{
+				super.data = value;
+
+				isOddLine = itemIndex % 2 != 0;	
+			
+				if(data){
+					title = data.name;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onClick():void{
+				var e:ItemClickEvent = new ItemClickEvent(ItemClickEvent.ITEM_CLICK, true);
+				e.item = data;
+				e.index = itemIndex;
+				dispatchEvent(e);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPlayButtonClick():void{
+				UIController.uiController.startPlayback(data as Clip);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="@Embed('../images/ClipItemBackground.png')" width="100%" height="100%"
+				   visible.normal="{isOddLine}" visible.selected="false" />
+	
+	<s:BitmapImage source="@Embed('../images/SelectedItemBackground.png')"
+				   visible.normal="false" 
+				   width="100%" height="100%" fillMode="repeat"/>
+	
+	<!-- Title -->
+	<s:BitmapImage source="@Embed('../images/Item.png')" left="20" verticalCenter="0"/>
+	<s:Label left="40" right="120" verticalCenter="0"
+			 maxDisplayedLines="1" 
+			 fontFamily="MyriadProLight" fontSize="28"
+			 color="#ffffff"
+			 text="{title}" /> 
+	
+	<!-- Play button -->
+	<supportClasses:ClipPlayButton id="playButton" right="8" verticalCenter="0" click="onPlayButtonClick()"/>
+	
+</s:ItemRenderer>

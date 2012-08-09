@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<supportClasses:PolicyRendererBase xmlns:fx="http://ns.adobe.com/mxml/2009" 
+								   xmlns:s="library://ns.adobe.com/flex/spark"
+								   xmlns:e="library://sporano/frameworks/slim"
+								   xmlns:supportClasses="activities.playbackActivities.supportClasses.*"
+								   height="60"  >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import frameworks.slim.events.SwitchEvent;
+			
+			import polkit.PolicyKit;
+			
+			/**
+			 * @private
+			 */
+			private function onSwitchChange(evt:SwitchEvent):void{
+				PolicyKit.policyKit.changePolicy(policy.key, evt.newValue);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Label text="{policy.description}" verticalCenter="0" left="5" right="100"
+			 color="#ffffff" />
+	<e:Switch selected="{policy.value}" verticalCenter="0" right="5" change="onSwitchChange(event)"/>
+	
+</supportClasses:PolicyRendererBase>

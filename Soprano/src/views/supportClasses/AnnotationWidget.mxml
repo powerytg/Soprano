@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 mouseChildren="false" mouseEnabled="false" >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.plugins.annotation.models.Annotation;
+			import core.plugins.annotation.models.AnnotationLayout;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var content:String;
+			
+			/**
+			 * @private
+			 */
+			private var _annotation:Annotation;
+
+			/**
+			 * @public
+			 */
+			public function get annotation():Annotation
+			{
+				return _annotation;
+			}
+
+			/**
+			 * @private
+			 */
+			public function set annotation(value:Annotation):void
+			{
+				if(_annotation != value){
+					_annotation = value;
+					
+					if(_annotation){
+						invalidateSize();
+						invalidateDisplayList();
+					}
+				}
+			}
+
+			/**
+			 * @private
+			 */
+			override protected function measure():void{
+				super.measure();
+				
+				if(_annotation){
+					measuredWidth = _annotation.layout.width;
+					measuredHeight = _annotation.layout.height;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void{
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+				
+				if(_annotation){
+					content = _annotation.content;
+					
+					if(_annotation.layout.horizontalAlign == AnnotationLayout.LEFT)
+						left = _annotation.layout.horizontalPadding;
+					else
+						right = _annotation.layout.horizontalPadding;
+					
+					if(_annotation.layout.verticalAlign == AnnotationLayout.TOP)
+						top = _annotation.layout.verticalPadding;
+					else
+						bottom = _annotation.layout.verticalPadding;
+					
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="@Embed(source='../images/Annotation.png', scaleGridLeft=10, scaleGridRight=30, scaleGridTop=10, scaleGridBottom=30)"
+				   left="0" right="0" top="0" bottom="0"/>
+	
+	<s:Label width="100%" height="100%"
+			 paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5"
+			 text="{content}"
+			 color="#6dcff6" fontSize="16" fontWeight="normal" fontFamily="Myriad Pro" /> 
+	
+</s:Group>

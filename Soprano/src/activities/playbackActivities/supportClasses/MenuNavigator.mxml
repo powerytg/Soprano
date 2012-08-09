@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 width="598" height="62">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="horizontalScrollPositionChange", type="activities.playbackActivities.events.MenuNavigatorEvent")]
+		[Event(name="horizontalScrollBegin", type="activities.playbackActivities.events.MenuNavigatorEvent")]
+		[Event(name="horizontalScrollEnd", type="activities.playbackActivities.events.MenuNavigatorEvent")]
+		[Event(name="viewChange", type="activities.playbackActivities.events.MenuNavigatorEvent")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import activities.playbackActivities.events.MenuNavigatorEvent;
+			
+			import frameworks.slim.activity.Activity;
+			
+			/**
+			 * @private
+			 */
+			private var positions:Array = [30, 125, 207, 300, 410, 512];
+			
+			/**
+			 * @private
+			 */
+			private var mouseOrigin:Point;
+			
+			/**
+			 * @private
+			 */
+			private function onMouseDown(evt:MouseEvent):void{
+				stage.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+				stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+				
+				mouseOrigin = new Point(evt.localX, evt.localY);
+				
+				dispatchEvent(new MenuNavigatorEvent(MenuNavigatorEvent.HORIZONTAL_SCROLL_BEGIN));
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onMouseMove(evt:MouseEvent):void{
+				// Prevent from moving out of boundary
+				var coord:Point = globalToLocal(new Point(evt.stageX, evt.stageY));
+				coord.x -= mouseOrigin.x;
+				coord.x = Math.min(coord.x, positions[positions.length - 1]);
+				coord.x = Math.max(coord.x, positions[0]);
+				
+				thumb.x = coord.x;
+				
+				var e:MenuNavigatorEvent = new MenuNavigatorEvent(MenuNavigatorEvent.HORIZONTAL_SCROLL_POSITION_CHANGE);
+				e.horizontalScrollPercentage = thumb.x / width;
+				dispatchEvent(e);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onMouseUp(evt:MouseEvent):void{
+				stage.removeEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+				stage.removeEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+				
+				// Snap to nearest valid position
+				var nearestIndex:Number = snapToNearestPosition();
+				
+				var e:MenuNavigatorEvent = new MenuNavigatorEvent(MenuNavigatorEvent.VIEW_CHANGE);
+				e.selectedViewIndex = nearestIndex;
+				dispatchEvent(e);
+				
+				dispatchEvent(new MenuNavigatorEvent(MenuNavigatorEvent.HORIZONTAL_SCROLL_END));
+			}
+			
+			/**
+			 * @public
+			 */
+			public function scrollToPercentage(percentage:Number):void{
+				thumb.x = width * percentage;
+			}
+			
+			/**
+			 * @public
+			 */
+			public function snapToNearestPosition():Number{
+				var minDist:Number = -1;
+				var nearestIndex:Number;
+				for(var i:uint = 0; i < positions.length; i++){
+					var diff:Number = Math.abs(positions[i] - thumb.x);
+					if(minDist == -1 || diff < minDist){
+						minDist = diff;
+						nearestIndex = i;
+					}
+				}
+				
+				thumb.x = positions[nearestIndex];
+				
+				return nearestIndex;
+			}
+			
+			/**
+			 * @public
+			 */
+			public function snapToPositionIndex(index:Number):void{
+				thumb.x = positions[index];
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<!-- Background -->
+	<s:BitmapImage source="@Embed('../images/Ruler.png')"/>
+	
+	<!-- Thumb -->
+	<s:Button id="thumb" skinClass="frameworks.slim.skins.HSliderThumbSkin"
+			  x="30" 
+			  verticalCenter="0" 
+			  mouseDown="onMouseDown(event)"/>
+	
+</s:Group>

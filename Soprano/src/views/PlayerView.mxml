@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:e="library://sporano/frameworks/slim" 
+		 xmlns:supportClasses="views.supportClasses.*">
+	<fx:Declarations>
+		<!-- Effects -->
+		
+		<!-- Hide chomre -->
+		<s:Sequence id="hideChromeAnimation">
+			<s:Parallel>
+				<s:Move target="{upperChrome}" yTo="-105"/>
+				<s:Animate target="{scrubbar}">
+					<s:motionPaths>
+						<s:SimpleMotionPath property="bottom" valueTo="-80"/>
+					</s:motionPaths>
+				</s:Animate>
+
+			</s:Parallel>
+			<s:SetAction targets="{[upperChrome, scrubbar]}" property="visible" value="false"/>
+		</s:Sequence>
+		
+		<!-- Show chrome -->
+		<s:Sequence id="showChromeAnimation">
+			<s:SetAction targets="{[upperChrome, scrubbar]}" property="visible" value="true"/>
+			<s:Parallel>
+				<s:Move target="{upperChrome}" yTo="0"/>
+				<s:Animate target="{scrubbar}">
+					<s:motionPaths>
+						<s:SimpleMotionPath property="bottom" valueTo="25"/>
+					</s:motionPaths>
+				</s:Animate>
+			</s:Parallel>
+		</s:Sequence>
+		
+		</fx:Declarations>
+	
+	<supportClasses:MediaContainerUIComponent id="videoContainer" width="100%" height="100%"
+											  mouseChildren="false" mouseEnabled="false" />
+	
+	<!-- Overlay -->
+	<s:Group id="overlayGroup" width="100%" height="100%">
+	</s:Group>
+
+	<!-- Lower chrome -->
+	<e:HSlider id="scrubbar" left="25" right="25" visible="false" bottom="-80"/>
+	
+	<!-- Upper chrome -->
+	<s:Group id="upperChrome" left="25" right="25" height="105" visible="false" y="-105">
+		<e:CircularButton id="closeButton" icon="@Embed('images/Back.png')" left="0" verticalCenter="0"/>
+		<e:CircularButton id="graphButton" icon="@Embed('images/Graph.png')" left="90" verticalCenter="0"/>
+		<e:CircularButton id="magicButton" icon="@Embed('images/Magic.png')" left="180" verticalCenter="0"/>
+		
+		<supportClasses:NextButton id="nextButton" right="0" verticalCenter="0"/>
+	</s:Group>
+	
+
+</s:Group>

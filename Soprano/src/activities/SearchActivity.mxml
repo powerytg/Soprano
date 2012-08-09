@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<e:Activity xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:e="library://sporano/frameworks/slim" 
+			 xmlns:activity="frameworks.slim.activity.*"
+			 resize="onResize()" 
+			 creationComplete="init()" >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import core.controllers.SearchController;
+			import core.events.SearchEvent;
+			import core.models.query.QueryCondition;
+			
+			import frameworks.slim.activity.ActivityDeck;
+			import frameworks.slim.activity.events.ActivityContainerEvent;
+			import frameworks.slim.activity.events.ActivityDeckEvent;
+			
+			import mx.collections.ArrayCollection;
+			
+			/**
+			 * @public
+			 */
+			public var itemsPerPage:Number = 6;
+			
+			/**
+			 * @public
+			 */
+			public var condition:QueryCondition
+			
+			/**
+			 * @public
+			 */
+			[Bindable]
+			public var dataProvider:ArrayCollection = new ArrayCollection();
+			
+			/**
+			 * @public
+			 */
+			[Bindable]
+			public var numPages:Number = 1;
+			
+			/**
+			 * @public
+			 */
+			[Bindable]
+			public var numLoadedPages:Number = 0;
+
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var resultString:String;
+			
+			/**
+			 * @private
+			 */
+			private var numSearchPageInitialized:Number = 0;
+			
+			/**
+			 * @private
+			 */
+			private function init():void{
+				addEventListener(SearchEvent.CONDITION_CHANGE, onConditionChange, false, 0, true);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onKeyDown(evt:KeyboardEvent):void{
+				if(evt.keyCode == Keyboard.ENTER){
+					if(searchBox.text != ""){
+						condition = new QueryCondition();
+						condition.clearPreviousRecords = true;
+						condition.keywords = searchBox.text;
+						
+						var event:SearchEvent = new SearchEvent(SearchEvent.CONDITION_CHANGE);
+						event.condition = condition;
+						onConditionChange(event);
+					}
+				}
+
+			}
+			
+			/**
+			 * @private
+			 */
+			protected function clearAll():void{
+				dataProvider.removeAll();
+				numPages = 1;
+				numLoadedPages = 0;
+				numSearchPageInitialized = 0;
+				
+				// Remove all previous search result pages
+				for each(var resultPage:SearchResultActivity in resultDeck.activities){
+					resultPage.removeEventListener(ActivityContainerEvent.ACTIVITIED, onPageActivited);
+				}
+				
+				resultDeck.removeAll();
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onConditionChange(evt:SearchEvent):void{
+				if(evt.condition.clearPreviousRecords){
+					clearAll();
+				}
+				
+				condition = evt.condition;
+				searchPage(1);					
+			}
+			
+			/**
+			 * @private
+			 */
+			private function searchPage(page:Number):void{
+				if(page == 1)
+					resultString = "searching...";
+				
+				numLoadedPages += 1;
+				
+				var dispatcher:EventDispatcher;
+				if(condition.keywords != "" && condition.keywords != null)
+					dispatcher = SearchController.searchController.searchResource(page, itemsPerPage, condition.keywords);
+				else if(condition.tag != null)
+					dispatcher = SearchController.searchController.searchResource(page, itemsPerPage, "all", condition.tag);
+				else if(isNaN(condition.month) || condition.month <= 0)
+					dispatcher = SearchController.searchController.searchResource(page, itemsPerPage, "all", null, condition.year);
+				else
+					dispatcher = SearchController.searchController.searchResource(page, itemsPerPage, "all", null, condition.year, condition.month);
+				
+				dispatcher.addEventListener(SearchEvent.RESOURCE_SEARCH_RESULT, onSearchResult, false, 0, true);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onSearchResult(evt:SearchEvent):void{
+				dataProvider.addAll(evt.payload.result as ArrayCollection);
+				numPages = evt.payload.numPages;
+				
+				if(evt.payload.totalItems == 0)
+					resultString = "not found";
+				else
+					resultString = numPages.toString() + " items";
+				
+				// Create empty result pages. We need to make sure that the deck is NOT in transition mode.
+				// If it is, then we'll have to wait till it exits transition mode
+				if(numSearchPageInitialized == 0 && evt.payload.numPages != 0){
+					if(resultDeck.isInTransitionMode){
+						resultDeck.addEventListener(ActivityDeckEvent.TRANSITION_END, createSearchResultPages, false, 0, true);
+					}
+					else{
+						createSearchResultPages();					
+					}					
+				}
+				else{
+					// Other pages
+					if(resultDeck.currentActivity){
+						(resultDeck.currentActivity as SearchResultActivity).dataProvider = evt.payload.result as ArrayCollection;
+					}
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onFirstPageInitialized(evt:ActivityContainerEvent):void{
+				var firstPage:SearchResultActivity = resultDeck.activities.getItemAt(0) as SearchResultActivity;
+				firstPage.removeEventListener(ActivityContainerEvent.PROXY_UPDATED, onFirstPageInitialized);
+				resultDeck.lookAt(firstPage);
+			}
+			
+			/**
+			 * @private
+			 */
+			private function createSearchResultPages(evt:ActivityDeckEvent = null):void{
+				resultDeck.removeEventListener(ActivityDeckEvent.TRANSITION_END, createSearchResultPages);
+				
+				for(var i:uint = 0; i < numPages; i++){
+					var page:SearchResultActivity = new SearchResultActivity();
+					resultDeck.addActivity(page);
+					
+					page.addEventListener(ActivityContainerEvent.PROXY_UPDATED, onPageInitialized, false, 0, true);
+					page.addEventListener(ActivityContainerEvent.ACTIVITIED, onPageActivited, false, 0, true);
+				}				
+			}
+
+			/**
+			 * @private
+			 */
+			private function onPageInitialized(evt:ActivityContainerEvent):void{
+				var resultPage:SearchResultActivity = evt.currentTarget as SearchResultActivity;
+				resultPage.removeEventListener(ActivityContainerEvent.PROXY_UPDATED, onPageInitialized);
+				
+				numSearchPageInitialized += 1;
+				if(numSearchPageInitialized == numPages){
+					// Look at first page
+					var firstPage:SearchResultActivity = resultDeck.activities.getItemAt(0) as SearchResultActivity;
+					firstPage.dataProvider.removeAll();
+					firstPage.dataProvider.addAll(dataProvider);
+
+					resultDeck.lookAt(firstPage);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onPageActivited(evt:ActivityContainerEvent):void{
+				var resultPage:SearchResultActivity = evt.currentTarget as SearchResultActivity;
+				
+				if(!resultPage.hasSearchResult()){
+					var page:Number = resultDeck.activities.getItemIndex(evt.currentTarget) + 1;
+					searchPage(page);
+				}
+				
+			}
+
+			/**
+			 * @private
+			 */
+			private function onResize():void{
+				resultDeck.height = height - 300;
+				resultDeck.resize();
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onTagButtonClick():void{
+				var deck:ActivityDeck = ActivityManager.activityManager.activityDeck;
+				deck.replaceAt(ActivityManager.activityManager.tagActivity, 2);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="@Embed('images/SearchBanner.png')" width="100%" fillMode="clip" horizontalAlign="left"
+				   top="105" />
+
+	<!-- Search box -->
+	<e:TextInput id="searchBox" left="25" right="25" top="220" height="30"
+				 keyDown="onKeyDown(event)" />
+	
+	<!-- Result page deck -->
+	<activity:SlideDeck id="resultDeck" top="300" bottom="0" width="100%"/>
+	
+	<!-- Search result -->
+	<s:BitmapImage source="@Embed('images/BottomBar.png')" left="0" right="160" bottom="0" height="30"
+				   fillMode="repeat"/> 
+	<s:Label fontSize="14" color="#bcedea" fontFamily="Myriad Pro" fontWeight="normal"
+			 bottom="6" right="180"
+			 text="Search Result"/> 
+	
+	<s:Label fontSize="14" color="#bcedea" fontFamily="Myriad Pro" fontWeight="normal"
+			 bottom="6" left="{width - 140}"
+			 text="{resultString}"/> 	
+	
+	<!-- Tag button -->
+	<e:Button id="tagButton" right="20" bottom="20" 
+			  skinClass="activities.skins.TagButtonSkin"
+			  click="onTagButtonClick()" />
+</e:Activity>

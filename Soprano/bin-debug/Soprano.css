@@ -1,0 +1,20 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+
+@font-face { 
+	src: url("fonts/Existence-Light.ttf"); 
+	fontFamily: Existence; 
+	embedAsCFF: true;
+}
+
+@font-face { 
+	src: url("fonts/MyriadPro-Light.otf"); 
+	fontFamily: MyriadProLight; 
+	embedAsCFF: true;
+}
+
+@font-face { 
+	src: url("fonts/MyriadPro-Regular.otf"); 
+	fontFamily: Myriad Pro; 
+	embedAsCFF: true;
+}

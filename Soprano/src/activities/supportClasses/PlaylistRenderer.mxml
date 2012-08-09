@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark"
+			 	height="75"	
+			 	autoDrawBackground="false"	
+			 	click="onClick()"	>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="selected"/>
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.ItemClickEvent;
+			
+			/**
+			 * @private
+			 * 
+			 * Background fill bitmap
+			 */
+			[Embed('../images/DarkItemBackground.png')]
+			private var darkFace:Class;
+			
+			/**
+			 * @private
+			 * 
+			 * Background fill bitmap
+			 */
+			[Embed('../images/LightItemBackground.png')]
+			private var lightFace:Class;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var backgroundFace:Class;
+
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var badgeFace:Class;
+
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var badgeVisible:Boolean;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var numClips:Number;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var badgeColor:Number;
+			
+			/**
+			 * @private
+			 */
+			[Bindable]
+			private var title:String;
+			
+			/**
+			 * @private
+			 */
+			override public function set data(value:Object):void{
+				super.data = value;
+				backgroundFace = (itemIndex % 2 == 1) ? darkFace : lightFace;
+				
+				if(data){
+					title = data.name;
+					
+					badgeVisible = data.numClips > 1;
+					badgeFace = PlaylistRendererHelper.getBackground(data.numClips);
+					badgeColor = PlaylistRendererHelper.getColor(data.numClips);
+					numClips = data.numClips;
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onClick():void{
+				var e:ItemClickEvent = new ItemClickEvent(ItemClickEvent.ITEM_CLICK, true);
+				e.item = data;
+				e.index = itemIndex;
+				dispatchEvent(e);
+			}
+		]]>
+	</fx:Script>
+	
+	<!-- Background -->
+	<s:BitmapImage source.normal="{backgroundFace}"
+				   source.selected="@Embed('../images/SelectedItemBackground.png')" 
+				   width="100%" height="100%" fillMode="repeat"/>
+	
+	<!-- Playlist title -->
+	<s:Label text="{title}" maxDisplayedLines="1" 
+			 fontFamily="MyriadProLight" fontSize="36" color="#c0e9db"
+			 left="108" right="10" verticalCenter="0"/> 
+	
+	<!-- Badge -->
+	<s:BitmapImage source="{badgeFace}" left="11" width="79" height="100%"/>
+	<s:Label left="32" top="5" visible="{badgeVisible}"
+			 color="{badgeColor}" fontSize="72" fontFamily="Myriad Pro" fontWeight="normal"
+			 text="{numClips}" /> 
+</s:ItemRenderer>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<flexLibProperties includeAllClasses="true" useMultiPlatformConfig="true" version="3">
+  <includeClasses>
+    <classEntry path="core.utils.ModelFactory"/>
+    <classEntry path="core.models.ModelBase"/>
+    <classEntry path="core.env.Version"/>
+    <classEntry path="core.env.AdAvailability"/>
+    <classEntry path="core.env.PluginPolicy"/>
+    <classEntry path="core.models.ResourceType"/>
+    <classEntry path="core.plugins.ad.utils.AdFactory"/>
+    <classEntry path="core.events.ClipEvent"/>
+    <classEntry path="core.controllers.SearchController"/>
+    <classEntry path="core.env.AnalysisPolicy"/>
+    <classEntry path="core.controllers.MetricsController"/>
+    <classEntry path="core.events.TagEvent"/>
+  </includeClasses>
+  <includeResources/>
+  <namespaceManifests/>
+</flexLibProperties>

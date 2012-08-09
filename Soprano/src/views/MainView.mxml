@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:e="library://sporano/frameworks/slim"
+		 xmlns:activities="activities.*"
+		 creationComplete="init()" 
+		 addedToStage="onAddedToStage()" >
+	<fx:Script>
+		<![CDATA[
+			import activities.ActivityManager;
+			
+			import core.events.PlaylistEvent;
+			
+			import frameworks.slim.activity.ActivityDeck;
+			
+			import polkit.PolicyKit;
+			import polkit.PolicyStrings;
+			
+			/**
+			 * @private
+			 */
+			private var activityDeck:ActivityDeck;
+			
+			/**
+			 * @private
+			 */
+			private function init():void
+			{
+				activityDeck = ActivityManager.activityManager.activityDeck;
+				if(!containsElement(activityDeck)){
+					addElement(activityDeck);
+					activityDeck.width = width;
+					activityDeck.height = height;
+					
+					activityDeck.push(ActivityManager.activityManager.featuredActivity);
+				}
+			}
+			
+			/**
+			 * @private
+			 */
+			private function onAddedToStage():void{
+				stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, onOrientationChange);
+			}
+			
+			/**
+			 * @public
+			 */
+			public function onOrientationChange(evt:StageOrientationEvent = null):void{
+				// Ignore during video playback
+				width = stage.stageWidth;
+				height = stage.stageHeight;
+
+				if(this.visible == false)
+					return;
+				
+				// Get related policies;
+				var useTwinView:Boolean = PolicyKit.policyKit.getPolicy(PolicyStrings.USE_TWIN_VIEW).value as Boolean;
+				var useTwinViewOnSmallScreen:Boolean = PolicyKit.policyKit.getPolicy(PolicyStrings.USE_TWIN_VIEW_ON_SMALL_SCREEN).value as Boolean;
+				
+				activityDeck.width = width;
+				activityDeck.height = height;
+				
+				var minLength:Number = Math.min(width, height);
+				var isSmallScreen:Boolean = (minLength >= 480);
+				var shouldUseTwinView:Boolean = isSmallScreen ? (useTwinViewOnSmallScreen && useTwinView) : useTwinView;
+				
+				if(stage.stageWidth >= stage.stageHeight){
+					// TwinView mode
+					if(shouldUseTwinView && activityDeck.isTwinView == false){
+						activityDeck.enterTwinView();
+					}
+					else{
+						activityDeck.resize();
+					}
+				}
+				else{
+					// Exit TwinView mode
+					if(shouldUseTwinView)
+						activityDeck.exitTwinView();
+					else
+						activityDeck.resize();
+				}
+			}
+			
+		]]>
+	</fx:Script>
+
+	<fx:Declarations>
+	</fx:Declarations>
+	
+	<!-- Background -->
+	<s:BitmapImage source="@Embed('images/Black.png')" width="100%" height="100%" fillMode="repeat"/>
+	<s:BitmapImage source="@Embed('images/TitleBanner.png')" width="100%" fillMode="clip"/>
+	
+</s:Group>
