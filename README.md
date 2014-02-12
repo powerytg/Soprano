@@ -38,3 +38,11 @@ https://github.com/powerytg/CrescentUI
 
 Slim UI:
 https://github.com/powerytg/SlimUI
+
+
+Screenshots:
+
+![Alt text](/screenshots/1.jpg "example")
+![Alt text](/screenshots/2.jpg "example")
+![Alt text](/screenshots/3.png "example")
+![Alt text](/screenshots/4.png "example")
